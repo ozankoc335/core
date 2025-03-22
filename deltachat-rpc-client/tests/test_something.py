@@ -778,3 +778,22 @@ def test_rename_synchronization(acfactory):
     alice_msg.sender.set_name("Bobby")
     alice2.wait_for_event(EventType.CONTACTS_CHANGED)
     assert alice2_msg.sender.get_snapshot().display_name == "Bobby"
+
+
+def test_rename_group(acfactory):
+    """Test renaming the group."""
+    alice, bob = acfactory.get_online_accounts(2)
+
+    alice_group = alice.create_group("Test group")
+    alice_contact_bob = alice.create_contact(bob)
+    alice_group.add_contact(alice_contact_bob)
+    alice_group.send_text("Hello!")
+
+    bob_msg = bob.wait_for_incoming_msg()
+    bob_chat = bob_msg.get_snapshot().chat
+    assert bob_chat.get_basic_snapshot().name == "Test group"
+
+    for name in ["Baz", "Foo bar", "Xyzzy"]:
+        alice_group.set_name(name)
+        bob.wait_for_incoming_msg_event()
+        assert bob_chat.get_basic_snapshot().name == name
