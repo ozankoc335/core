@@ -86,7 +86,9 @@ pub struct MimeFactory {
     /// Vector of pairs of recipient name and address that goes into the `To` field.
     ///
     /// The list of actual message recipient addresses may be different,
-    /// e.g. if members are hidden for broadcast lists.
+    /// e.g. if members are hidden for broadcast lists
+    /// or if the keys for some recipients are missing
+    /// and encrypted message cannot be sent to them.
     to: Vec<(String, String)>,
 
     /// Vector of pairs of past group member names and addresses.
@@ -784,9 +786,7 @@ impl MimeFactory {
 
         let peerstates = self.peerstates_for_recipients(context).await?;
         let is_encrypted = !self.should_force_plaintext()
-            && encrypt_helper
-                .should_encrypt(context, e2ee_guaranteed, &peerstates)
-                .await?;
+            && (e2ee_guaranteed || encrypt_helper.should_encrypt(context, &peerstates).await?);
         let is_securejoin_message = if let Loaded::Message { msg, .. } = &self.loaded {
             msg.param.get_cmd() == SystemMessage::SecurejoinMessage
         } else {
@@ -982,13 +982,22 @@ impl MimeFactory {
                 Loaded::Mdn { .. } => true,
             };
 
+            let (encryption_keyring, missing_key_addresses) =
+                encrypt_helper.encryption_keyring(context, verified, &peerstates)?;
+
             // XXX: additional newline is needed
             // to pass filtermail at
             // <https://github.com/deltachat/chatmail/blob/4d915f9800435bf13057d41af8d708abd34dbfa8/chatmaild/src/chatmaild/filtermail.py#L84-L86>
             let encrypted = encrypt_helper
-                .encrypt(context, verified, message, peerstates, compress)
+                .encrypt(context, encryption_keyring, message, compress)
                 .await?
                 + "\n";
+
+            // Remove recipients for which the key is missing.
+            if !missing_key_addresses.is_empty() {
+                self.recipients
+                    .retain(|addr| !missing_key_addresses.contains(addr));
+            }
 
             // Set the appropriate Content-Type for the outer message
             MimePart::new(

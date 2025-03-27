@@ -1732,6 +1732,10 @@ pub async fn delete_msgs_ex(
             !delete_for_all || msg.from_id == ContactId::SELF,
             "Can delete only own messages for others"
         );
+        ensure!(
+            !delete_for_all || msg.get_showpadlock(),
+            "Cannot request deletion of unencrypted message for others"
+        );
 
         modified_chat_ids.insert(msg.chat_id);
         deleted_rfc724_mid.push(msg.rfc724_mid.clone());

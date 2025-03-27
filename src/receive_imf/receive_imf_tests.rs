@@ -4924,11 +4924,10 @@ async fn test_protected_group_add_remove_member_missing_key() -> Result<()> {
     let fiona_addr = fiona.get_config(Config::Addr).await?.unwrap();
     mark_as_verified(alice, fiona).await;
     let alice_fiona_id = alice.add_or_lookup_contact(fiona).await.id;
-    assert!(add_contact_to_chat(alice, group_id, alice_fiona_id)
-        .await
-        .is_err());
-    // Sending the message failed,
-    // but member is added to the chat locally already.
+    add_contact_to_chat(alice, group_id, alice_fiona_id).await?;
+
+    // The message is not sent to Bob,
+    // but member is added to the chat locally anyway.
     assert!(is_contact_in_chat(alice, group_id, alice_fiona_id).await?);
     let msg = alice.get_last_msg_in(group_id).await;
     assert!(msg.is_info());
@@ -4936,10 +4935,6 @@ async fn test_protected_group_add_remove_member_missing_key() -> Result<()> {
         msg.get_text(),
         stock_str::msg_add_member_local(alice, &fiona_addr, ContactId::SELF).await
     );
-
-    // Now the chat has a message "You added member fiona@example.net. [INFO] !!" (with error) that
-    // may be confusing, but if the error is displayed in UIs, it's more or less ok. This is not a
-    // normal scenario anyway.
 
     remove_contact_from_chat(alice, group_id, alice_bob_id).await?;
     assert!(!is_contact_in_chat(alice, group_id, alice_bob_id).await?);
@@ -4949,7 +4944,6 @@ async fn test_protected_group_add_remove_member_missing_key() -> Result<()> {
         msg.get_text(),
         stock_str::msg_del_member_local(alice, &bob_addr, ContactId::SELF,).await
     );
-    assert!(msg.error().is_some());
     Ok(())
 }
 
