@@ -81,6 +81,14 @@ impl TestContextManager {
             .await
     }
 
+    pub async fn charlie(&mut self) -> TestContext {
+        TestContext::builder()
+            .configure_charlie()
+            .with_log_sink(self.log_sink.clone())
+            .build()
+            .await
+    }
+
     pub async fn fiona(&mut self) -> TestContext {
         TestContext::builder()
             .configure_fiona()
@@ -237,6 +245,13 @@ impl TestContextBuilder {
     /// This is a shortcut for `.with_key_pair(bob_keypair())`.
     pub fn configure_bob(self) -> Self {
         self.with_key_pair(bob_keypair())
+    }
+
+    /// Configures as charlie@example.net with fixed secret key.
+    ///
+    /// This is a shortcut for `.with_key_pair(fiona_keypair())`.
+    pub fn configure_charlie(self) -> Self {
+        self.with_key_pair(charlie_keypair())
     }
 
     /// Configures as fiona@example.net with fixed secret key.
@@ -682,7 +697,7 @@ impl TestContext {
     }
 
     /// Returns the [`ContactId`] for the other [`TestContext`], creating a contact if necessary.
-    pub async fn add_or_lookup_contact_id(&self, other: &TestContext) -> ContactId {
+    pub async fn add_or_lookup_email_contact_id(&self, other: &TestContext) -> ContactId {
         let primary_self_addr = other.ctx.get_primary_self_addr().await.unwrap();
         let addr = ContactAddress::new(&primary_self_addr).unwrap();
         // MailinglistAddress is the lowest allowed origin, we'd prefer to not modify the
@@ -701,17 +716,22 @@ impl TestContext {
 
     /// Returns the [`Contact`] for the other [`TestContext`], creating it if necessary.
     pub async fn add_or_lookup_email_contact(&self, other: &TestContext) -> Contact {
-        let contact_id = self.add_or_lookup_contact_id(other).await;
+        let contact_id = self.add_or_lookup_email_contact_id(other).await;
         Contact::get_by_id(&self.ctx, contact_id).await.unwrap()
+    }
+
+    /// Returns the [`ContactId`] for the other [`TestContext`], creating it if necessary.
+    pub async fn add_or_lookup_contact_id(&self, other: &TestContext) -> ContactId {
+        let vcard = make_vcard(other, &[ContactId::SELF]).await.unwrap();
+        let contact_ids = import_vcard(self, &vcard).await.unwrap();
+        assert_eq!(contact_ids.len(), 1);
+        *contact_ids.first().unwrap()
     }
 
     /// Returns the [`Contact`] for the other [`TestContext`], creating it if necessary.
     pub async fn add_or_lookup_contact(&self, other: &TestContext) -> Contact {
-        let vcard = make_vcard(other, &[ContactId::SELF]).await.unwrap();
-        let contact_ids = import_vcard(self, &vcard).await.unwrap();
-        assert_eq!(contact_ids.len(), 1);
-        let contact_id = contact_ids.first().unwrap();
-        Contact::get_by_id(&self.ctx, *contact_id).await.unwrap()
+        let contact_id = self.add_or_lookup_contact_id(other).await;
+        Contact::get_by_id(&self.ctx, contact_id).await.unwrap()
     }
 
     /// Returns 1:1 [`Chat`] with another account. Panics if it doesn't exist.
@@ -1110,6 +1130,21 @@ pub fn bob_keypair() -> KeyPair {
     let secret = key::SignedSecretKey::from_asc(include_str!("../test-data/key/bob-secret.asc"))
         .unwrap()
         .0;
+    KeyPair { public, secret }
+}
+
+/// Load a pre-generated keypair for charlie@example.net from disk.
+///
+/// Like [alice_keypair] but a different key and identity.
+pub fn charlie_keypair() -> KeyPair {
+    let public =
+        key::SignedPublicKey::from_asc(include_str!("../test-data/key/charlie-public.asc"))
+            .unwrap()
+            .0;
+    let secret =
+        key::SignedSecretKey::from_asc(include_str!("../test-data/key/charlie-secret.asc"))
+            .unwrap()
+            .0;
     KeyPair { public, secret }
 }
 
