@@ -1389,20 +1389,52 @@ async fn test_pinned_after_new_msgs() -> Result<()> {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn test_set_chat_name() {
-    let t = TestContext::new().await;
-    let chat_id = create_group_chat(&t, ProtectionStatus::Unprotected, "foo")
+    let mut tcm = TestContextManager::new();
+    let alice = &tcm.alice().await;
+
+    let chat_id = create_group_chat(alice, ProtectionStatus::Unprotected, "foo")
         .await
         .unwrap();
     assert_eq!(
-        Chat::load_from_db(&t, chat_id).await.unwrap().get_name(),
+        Chat::load_from_db(alice, chat_id).await.unwrap().get_name(),
         "foo"
     );
 
-    set_chat_name(&t, chat_id, "bar").await.unwrap();
+    set_chat_name(alice, chat_id, "bar").await.unwrap();
     assert_eq!(
-        Chat::load_from_db(&t, chat_id).await.unwrap().get_name(),
+        Chat::load_from_db(alice, chat_id).await.unwrap().get_name(),
         "bar"
     );
+
+    let bob = &tcm.bob().await;
+    let bob_contact_id = alice.add_or_lookup_contact_id(bob).await;
+    add_contact_to_chat(alice, chat_id, bob_contact_id)
+        .await
+        .unwrap();
+
+    let sent_msg = alice.send_text(chat_id, "Hi").await;
+    let received_msg = bob.recv_msg(&sent_msg).await;
+    let bob_chat_id = received_msg.chat_id;
+
+    for new_name in [
+        "Baz",
+        "xyzzy",
+        "Quux",
+        "another name",
+        "something different",
+    ] {
+        set_chat_name(alice, chat_id, new_name).await.unwrap();
+        let sent_msg = alice.pop_sent_msg().await;
+        let received_msg = bob.recv_msg(&sent_msg).await;
+        assert_eq!(received_msg.chat_id, bob_chat_id);
+        assert_eq!(
+            Chat::load_from_db(bob, bob_chat_id)
+                .await
+                .unwrap()
+                .get_name(),
+            new_name
+        );
+    }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
