@@ -3004,6 +3004,12 @@ async fn prepare_send_msg(
 ///
 /// The caller has to interrupt SMTP loop or otherwise process new rows.
 pub(crate) async fn create_send_msg_jobs(context: &Context, msg: &mut Message) -> Result<Vec<i64>> {
+    if msg.param.get_cmd() == SystemMessage::GroupNameChanged {
+        msg.chat_id
+            .update_timestamp(context, Param::GroupNameTimestamp, msg.timestamp_sort)
+            .await?;
+    }
+
     let needs_encryption = msg.param.get_bool(Param::GuaranteeE2ee).unwrap_or_default();
     let mimefactory = MimeFactory::from_msg(context, msg.clone()).await?;
     let attach_selfavatar = mimefactory.attach_selfavatar;
@@ -3048,11 +3054,6 @@ pub(crate) async fn create_send_msg_jobs(context: &Context, msg: &mut Message) -
         msg.id.set_delivered(context).await?;
         msg.state = MessageState::OutDelivered;
         return Ok(Vec::new());
-    }
-    if msg.param.get_cmd() == SystemMessage::GroupNameChanged {
-        msg.chat_id
-            .update_timestamp(context, Param::GroupNameTimestamp, msg.timestamp_sort)
-            .await?;
     }
 
     let rendered_msg = match mimefactory.render(context).await {
