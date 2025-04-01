@@ -227,8 +227,9 @@ impl CommandApi {
     /// Get a list of all configured accounts.
     async fn get_all_accounts(&self) -> Result<Vec<Account>> {
         let mut accounts = Vec::new();
-        for id in self.accounts.read().await.get_all() {
-            let context_option = self.accounts.read().await.get_account(id);
+        let accounts_lock = self.accounts.read().await;
+        for id in accounts_lock.get_all() {
+            let context_option = accounts_lock.get_account(id);
             if let Some(ctx) = context_option {
                 accounts.push(Account::from_context(&ctx, id).await?)
             }
