@@ -860,7 +860,7 @@ def test_send_first_message_as_long_unicode_with_cr(acfactory, lp):
         " wrapped using format=flowed and unwrapped on the receiver"
     )
     msg_out = chat.send_text(text1)
-    assert not msg_out.is_encrypted()
+    assert msg_out.is_encrypted()
 
     lp.sec("wait for ac2 to receive multi-line non-unicode message")
     msg_in = ac2._evtracker.wait_next_incoming_message()
@@ -869,7 +869,7 @@ def test_send_first_message_as_long_unicode_with_cr(acfactory, lp):
     lp.sec("sending multi-line unicode text message from ac1 to ac2")
     text2 = "äalis\nthis is ßßÄ"
     msg_out = chat.send_text(text2)
-    assert not msg_out.is_encrypted()
+    assert msg_out.is_encrypted()
 
     lp.sec("wait for ac2 to receive multi-line unicode message")
     msg_in = ac2._evtracker.wait_next_incoming_message()
@@ -1374,7 +1374,7 @@ def test_add_remove_member_remote_events(acfactory, lp):
     lp.sec("ac1: add address2")
     # note that if the above create_chat() would not
     # happen we would not receive a proper member_added event
-    contact2 = chat.add_contact(ac3_addr)
+    contact2 = chat.add_contact(ac3)
     ev = in_list.get()
     assert ev.action == "chat-modified"
     ev = in_list.get()
@@ -1814,9 +1814,7 @@ def test_name_changes(acfactory):
     ac1, ac2 = acfactory.get_online_accounts(2)
     ac1.set_config("displayname", "Account 1")
 
-    # Similar to acfactory.get_accepted_chat, but without setting the contact name.
-    ac2.create_contact(ac1.get_config("addr")).create_chat()
-    chat12 = ac1.create_contact(ac2.get_config("addr")).create_chat()
+    chat12 = acfactory.get_accepted_chat(ac1, ac2)
     contact = None
 
     def update_name():
