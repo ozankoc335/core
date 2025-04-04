@@ -767,8 +767,10 @@ async fn add_parts(
     let allow_creation;
     if mime_parser.is_system_message != SystemMessage::AutocryptSetupMessage
         && is_dc_message == MessengerMessage::No
+        && !context.get_config_bool(Config::IsChatmail).await?
     {
-        // this message is a classic email not a chat-message nor a reply to one
+        // the message is a classic email in a classic profile
+        // (in chatmail profiles, we always show all messages, because shared dc-mua usage is not supported)
         match show_emails {
             ShowEmails::Off => {
                 info!(context, "Classical email not shown (TRASH).");
