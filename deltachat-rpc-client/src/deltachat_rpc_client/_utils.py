@@ -1,5 +1,6 @@
 import argparse
 import re
+import os
 import sys
 from threading import Thread
 from typing import TYPE_CHECKING, Callable, Iterable, Optional, Tuple, Type, Union
@@ -89,8 +90,8 @@ def _run_cli(
         help="accounts folder (default: current working directory)",
         nargs="?",
     )
-    parser.add_argument("--email", action="store", help="email address")
-    parser.add_argument("--password", action="store", help="password")
+    parser.add_argument("--email", action="store", help="email address", default=os.getenv("DELTACHAT_EMAIL"))
+    parser.add_argument("--password", action="store", help="password", default=os.getenv("DELTACHAT_PASSWORD")))
     args = parser.parse_args(argv[1:])
 
     with Rpc(accounts_dir=args.accounts_dir, **kwargs) as rpc:
