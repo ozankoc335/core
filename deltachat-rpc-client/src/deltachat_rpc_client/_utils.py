@@ -1,6 +1,6 @@
 import argparse
-import re
 import os
+import re
 import sys
 from threading import Thread
 from typing import TYPE_CHECKING, Callable, Iterable, Optional, Tuple, Type, Union
