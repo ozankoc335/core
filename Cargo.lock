@@ -313,12 +313,12 @@ dependencies = [
 
 [[package]]
 name = "async-smtp"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ee04bcf0a7ebf5594f9aff84935dc8cb0490b65055913a7a4c4d08f81e181d6"
+checksum = "7c2d87bfab790b8b5b718a65bbcca6187f0d091270ea21f8c12fa03ce3823aba"
 dependencies = [
  "anyhow",
- "base64 0.13.1",
+ "base64 0.22.1",
  "futures",
  "log",
  "nom",
@@ -409,12 +409,6 @@ name = "base16ct"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4c7f02d4ea65f2c1853089ffd8d2787bdbc63de2f0d29dedbcf8ccdfa0ccd4cf"
-
-[[package]]
-name = "base64"
-version = "0.13.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
 
 [[package]]
 name = "base64"
