@@ -91,7 +91,7 @@ def _run_cli(
         nargs="?",
     )
     parser.add_argument("--email", action="store", help="email address", default=os.getenv("DELTACHAT_EMAIL"))
-    parser.add_argument("--password", action="store", help="password", default=os.getenv("DELTACHAT_PASSWORD")))
+    parser.add_argument("--password", action="store", help="password", default=os.getenv("DELTACHAT_PASSWORD"))
     args = parser.parse_args(argv[1:])
 
     with Rpc(accounts_dir=args.accounts_dir, **kwargs) as rpc:
