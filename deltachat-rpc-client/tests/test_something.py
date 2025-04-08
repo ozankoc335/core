@@ -801,3 +801,27 @@ def test_get_all_accounts_deadlock(rpc):
         all_accounts = rpc.get_all_accounts.future()
         rpc.add_account()
         all_accounts()
+
+
+def test_delete_deltachat_folder(acfactory, direct_imap):
+    """Test that DeltaChat folder is recreated if user deletes it manually."""
+    ac1 = acfactory.new_configured_account()
+    ac1.set_config("mvbox_move", "1")
+    ac1.bring_online()
+
+    ac1_direct_imap = direct_imap(ac1)
+    ac1_direct_imap.conn.folder.delete("DeltaChat")
+    assert "DeltaChat" not in ac1_direct_imap.list_folders()
+
+    # Wait until new folder is created and UIDVALIDITY is updated.
+    while True:
+        event = ac1.wait_for_event()
+        if event.kind == EventType.INFO and "uid/validity change folder DeltaChat" in event.msg:
+            break
+
+    ac2 = acfactory.get_online_account()
+    ac2.create_chat(ac1).send_text("hello")
+    msg = ac1.wait_for_incoming_msg().get_snapshot()
+    assert msg.text == "hello"
+
+    assert "DeltaChat" in ac1_direct_imap.list_folders()

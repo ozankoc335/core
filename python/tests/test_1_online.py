@@ -1979,23 +1979,6 @@ def test_scan_folders(acfactory, lp, folder, move, expected_destination):
         assert len(ac1.direct_imap.get_all_messages()) == 0
 
 
-def test_delete_deltachat_folder(acfactory):
-    """Test that DeltaChat folder is recreated if user deletes it manually."""
-    ac1 = acfactory.new_online_configuring_account(mvbox_move=True)
-    ac2 = acfactory.new_online_configuring_account()
-    acfactory.wait_configured(ac1)
-
-    ac1.direct_imap.conn.folder.delete("DeltaChat")
-    assert "DeltaChat" not in ac1.direct_imap.list_folders()
-    acfactory.bring_accounts_online()
-
-    ac2.create_chat(ac1).send_text("hello")
-    msg = ac1._evtracker.wait_next_incoming_message()
-    assert msg.text == "hello"
-
-    assert "DeltaChat" in ac1.direct_imap.list_folders()
-
-
 def test_archived_muted_chat(acfactory, lp):
     """If an archived and muted chat receives a new message, DC_EVENT_MSGS_CHANGED for
     DC_CHAT_ID_ARCHIVED_LINK must be generated if the chat had only seen messages previously.
