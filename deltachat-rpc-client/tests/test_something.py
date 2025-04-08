@@ -63,8 +63,7 @@ def test_acfactory(acfactory) -> None:
 def test_configure_starttls(acfactory) -> None:
     addr, password = acfactory.get_credentials()
     account = acfactory.get_unconfigured_account()
-    account._rpc.add_transport(
-        account.id,
+    account.add_transport(
         {
             "addr": addr,
             "password": password,
@@ -81,8 +80,7 @@ def test_configure_ip(acfactory) -> None:
     ip_address = socket.gethostbyname(addr.rsplit("@")[-1])
 
     with pytest.raises(JsonRpcError):
-        account._rpc.add_transport(
-            account.id,
+        account.add_transport(
             {
                 "addr": addr,
                 "password": password,
@@ -96,8 +94,7 @@ def test_configure_alternative_port(acfactory) -> None:
     """Test that configuration with alternative port 443 works."""
     addr, password = acfactory.get_credentials()
     account = acfactory.get_unconfigured_account()
-    account._rpc.add_transport(
-        account.id,
+    account.add_transport(
         {
             "addr": addr,
             "password": password,
@@ -111,8 +108,7 @@ def test_configure_alternative_port(acfactory) -> None:
 def test_list_transports(acfactory) -> None:
     addr, password = acfactory.get_credentials()
     account = acfactory.get_unconfigured_account()
-    account._rpc.add_transport(
-        account.id,
+    account.add_transport(
         {
             "addr": addr,
             "password": password,
@@ -424,7 +420,7 @@ def test_wait_next_messages(acfactory) -> None:
     addr, password = acfactory.get_credentials()
     bot = acfactory.get_unconfigured_account()
     bot.set_config("bot", "1")
-    bot._rpc.add_transport(bot.id, {"addr": addr, "password": password})
+    bot.add_transport({"addr": addr, "password": password})
     assert bot.is_configured()
 
     # There are no old messages and the call returns immediately.
@@ -607,7 +603,7 @@ def test_reactions_for_a_reordering_move(acfactory, direct_imap):
 
     addr, password = acfactory.get_credentials()
     ac2 = acfactory.get_unconfigured_account()
-    ac2._rpc.add_transport(ac2.id, {"addr": addr, "password": password})
+    ac2.add_transport({"addr": addr, "password": password})
     ac2.set_config("mvbox_move", "1")
     assert ac2.is_configured()
 
