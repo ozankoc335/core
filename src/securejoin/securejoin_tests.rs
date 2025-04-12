@@ -452,7 +452,7 @@ async fn test_setup_contact_bob_knows_alice() -> Result<()> {
             .expect("Error looking up contact")
             .expect("Contact not found");
     let contact_alice = Contact::get_by_id(&bob.ctx, contact_alice_id).await?;
-    assert_eq!(contact_bob.is_verified(&bob.ctx).await?, false);
+    assert_eq!(contact_alice.is_verified(&bob.ctx).await?, false);
 
     // Step 7: Bob receives vc-contact-confirm
     bob.recv_msg_trash(&sent).await;
@@ -636,7 +636,7 @@ async fn test_secure_join() -> Result<()> {
             .expect("Error looking up contact")
             .expect("Contact not found");
     let contact_alice = Contact::get_by_id(&bob.ctx, contact_alice_id).await?;
-    assert_eq!(contact_bob.is_verified(&bob.ctx).await?, false);
+    assert_eq!(contact_alice.is_verified(&bob.ctx).await?, false);
 
     // Step 7: Bob receives vg-member-added
     bob.recv_msg(&sent).await;
