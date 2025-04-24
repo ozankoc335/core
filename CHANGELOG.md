@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.159.3] - 2025-04-24
+
+### CI
+
+- Use `ubuntu-latest` runner for `@deltachat/jsonrpc-client` publishing.
+
 ## [1.159.2] - 2025-04-23
 
 ### Fixes
@@ -6260,3 +6266,4 @@ https://github.com/chatmail/core/pulls?q=is%3Apr+is%3Aclosed
 [1.159.0]: https://github.com/chatmail/core/compare/v1.158.0..v1.159.0
 [1.159.1]: https://github.com/chatmail/core/compare/v1.159.0..v1.159.1
 [1.159.2]: https://github.com/chatmail/core/compare/v1.159.1..v1.159.2
+[1.159.3]: https://github.com/chatmail/core/compare/v1.159.2..v1.159.3
