@@ -6,6 +6,10 @@ edition = "2021"
 license = "MPL-2.0"
 repository = "https://github.com/chatmail/core"
 
+[[bin]]
+name = "simple_server"
+path = "simple_server.rs"
+
 [dependencies]
 anyhow = { workspace = true }
 deltachat = { workspace = true }
@@ -27,6 +31,13 @@ cpal = { version = "0.15.3" }
 uuid = { version = "1.0", features = ["v4"] }
 ringbuf = "0.4.7"
 rand = "0.8"
+
+# Callme P2P voice calling (simplified version for compatibility)
+# callme = { git = "https://github.com/n0-computer/callme.git" }
+# iroh = "0.28"
+# iroh-roq = "0.1"
+futures-concurrency = "7.6"
+tracing = "0.1"
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["full", "rt-multi-thread"] }

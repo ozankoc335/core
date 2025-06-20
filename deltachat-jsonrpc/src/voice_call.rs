@@ -6,12 +6,14 @@ use serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
 use tokio::sync::RwLock;
 use uuid::Uuid;
+use crate::callme_integration::{CallmeManager, CallmeStatus, NodeId};
 
 /// Voice call manager for handling voice calls
 #[derive(Debug)]
 pub struct VoiceCallManager {
     active_calls: Arc<RwLock<HashMap<String, ActiveCall>>>,
     node_id: String,
+    pub callme_manager: Arc<RwLock<CallmeManager>>,
 }
 
 /// Represents an active voice call
@@ -57,6 +59,7 @@ impl VoiceCallManager {
         Ok(Self {
             active_calls: Arc::new(RwLock::new(HashMap::new())),
             node_id,
+            callme_manager: Arc::new(RwLock::new(CallmeManager::new())),
         })
     }
 
@@ -67,15 +70,35 @@ impl VoiceCallManager {
 
     /// Start listening for incoming calls
     pub async fn start_listening(&self) -> Result<()> {
-        // In a real implementation, this would start a network listener
-        // For now, we'll just return Ok to indicate the manager is ready
+        // Initialize callme manager
+        let mut callme = self.callme_manager.write().await;
+        let callme_node_id = callme.init().await?;
+        
+        // Update our node_id with the actual callme node_id
+        // Note: In a real implementation, we'd store this properly
         println!("Voice call manager started listening for incoming calls");
+        println!("Callme node ID: {}", callme_node_id);
         Ok(())
     }
 
     /// Initiate an outgoing call
     pub async fn start_call(&self, remote_peer_id: String) -> Result<String> {
-        let call_id = format!("call_{}", Uuid::new_v4());
+        // Use callme for P2P call if remote_peer_id looks like a callme node ID
+        let callme_call_id = if remote_peer_id.starts_with("callme_node_") {
+            // Use callme for P2P call
+            let callme = self.callme_manager.read().await;
+            match callme.start_call(remote_peer_id.clone()).await {
+                Ok(id) => Some(id),
+                Err(e) => {
+                    println!("Callme call failed, falling back to legacy: {}", e);
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
+        let call_id = callme_call_id.unwrap_or_else(|| format!("call_{}", Uuid::new_v4()));
         
         let active_call = ActiveCall {
             call_id: call_id.clone(),
@@ -86,9 +109,7 @@ impl VoiceCallManager {
 
         self.active_calls.write().await.insert(call_id.clone(), active_call);
         
-        // In a real implementation, this would initiate network connection
         println!("Starting call with ID: {}", call_id);
-
         Ok(call_id)
     }
 

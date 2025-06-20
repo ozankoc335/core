@@ -149,45 +149,71 @@ struct JsonRpcRequest {
 }
 
 fn parse_json_rpc(body: &str) -> Result<JsonRpcRequest, String> {
-    // Basit JSON parsing (gerçek projede serde kullanın)
-    if let Some(method_start) = body.find("\"method\":") {
-        let method_part = &body[method_start + 9..];
-        if let Some(method_end) = method_part.find(',') {
-            let method = method_part[1..method_end-1].to_string();
-            
-            let params = if let Some(params_start) = body.find("\"params\":") {
-                let params_part = &body[params_start + 9..];
-                if let Some(params_end) = params_part.find(']') {
-                    let params_str = &params_part[1..params_end];
+    println!("DEBUG: Parsing JSON: {}", body);
+    
+    // Extract method
+    let method = if let Some(start) = body.find("\"method\":") {
+        let start = start + 9; // Skip "method":
+        let method_part = &body[start..].trim_start();
+        if method_part.starts_with('"') {
+            let start = 1; // Skip opening quote
+            if let Some(end) = method_part[start..].find('"') {
+                method_part[start..start + end].to_string()
+            } else {
+                return Err("Method end quote not found".to_string());
+            }
+        } else {
+            return Err("Method value not quoted".to_string());
+        }
+    } else {
+        return Err("Method not found".to_string());
+    };
+    
+    println!("DEBUG: Extracted method: {}", method);
+    
+    // Extract params
+    let params = if let Some(start) = body.find("\"params\":") {
+        let start = start + 9; // Skip "params":
+        let params_part = &body[start..].trim_start();
+        if params_part.starts_with('[') {
+            if let Some(end) = params_part.find(']') {
+                let params_str = &params_part[1..end]; // Skip [ and ]
+                if params_str.trim().is_empty() {
+                    vec![]
+                } else {
                     params_str.split(',')
                         .map(|s| s.trim().trim_matches('"').to_string())
                         .filter(|s| !s.is_empty())
                         .collect()
-                } else {
-                    vec![]
                 }
             } else {
                 vec![]
-            };
-            
-            let id = if let Some(id_start) = body.find("\"id\":") {
-                let id_part = &body[id_start + 5..];
-                if let Some(id_end) = id_part.find('}') {
-                    id_part[..id_end].trim().parse().unwrap_or(1)
-                } else {
-                    1
-                }
-            } else {
-                1
-            };
-            
-            Ok(JsonRpcRequest { method, params, id })
+            }
         } else {
-            Err("Invalid method format".to_string())
+            vec![]
         }
     } else {
-        Err("Method not found".to_string())
-    }
+        vec![]
+    };
+    
+    println!("DEBUG: Extracted params: {:?}", params);
+    
+    // Extract id
+    let id = if let Some(start) = body.find("\"id\":") {
+        let start = start + 5; // Skip "id":
+        let id_part = &body[start..];
+        if let Some(end) = id_part.find('}') {
+            id_part[..end].trim().parse().unwrap_or(1)
+        } else {
+            1
+        }
+    } else {
+        1
+    };
+    
+    println!("DEBUG: Extracted id: {}", id);
+    
+    Ok(JsonRpcRequest { method, params, id })
 }
 
 // JSON-RPC response formatter
@@ -196,7 +222,7 @@ fn format_response(id: i32, result: &str) -> String {
 }
 
 fn format_error(id: i32, error: &str) -> String {
-    format!(r#"{{"jsonrpc":"2.0","error":{{"code":-1,"message":"{}"}},"id":{}}}"#, error, id)
+    format!(r#"{{"jsonrpc":"2.0","error":{{"code":-1,"message":"{}"}},"id":{}}}"#, error.replace('"', "\\\""), id)
 }
 
 // Voice call method handler
@@ -256,6 +282,42 @@ fn handle_voice_call_method(method: &str, params: &[String]) -> Result<String, S
             }
             let call_id = manager.simulate_incoming_call(params[0].clone())?;
             Ok(format!(r#""{}""#, call_id))
+        },
+        // Callme P2P methods
+        "get_callme_node_id" => {
+            // Return a simulated callme node ID
+            let callme_node_id = format!("callme_node_{}", rand_u32());
+            Ok(format!(r#""{}""#, callme_node_id))
+        },
+        "start_callme_call" => {
+            if params.is_empty() {
+                return Err("Missing peer_node_id parameter".to_string());
+            }
+            let call_id = format!("callme_{}", rand_u32());
+            // Simulate adding to active calls
+            Ok(format!(r#""{}""#, call_id))
+        },
+        "accept_callme_call" => {
+            if params.is_empty() {
+                return Err("Missing call_id parameter".to_string());
+            }
+            Ok(r#""Callme call accepted""#.to_string())
+        },
+        "end_callme_call" => {
+            if params.is_empty() {
+                return Err("Missing call_id parameter".to_string());
+            }
+            Ok(r#""Callme call ended""#.to_string())
+        },
+        "get_active_callme_calls" => {
+            // Return empty array for now
+            Ok("[]".to_string())
+        },
+        "get_callme_call_status" => {
+            if params.is_empty() {
+                return Err("Missing call_id parameter".to_string());
+            }
+            Ok(r#""Connected""#.to_string())
         },
         _ => Err(format!("Unknown method: {}", method))
     }

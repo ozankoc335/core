@@ -3,6 +3,7 @@
 #![cfg_attr(not(test), forbid(clippy::string_slice))]
 pub mod api;
 pub mod voice_call;
+pub mod callme_integration;
 
 #[cfg(test)]
 mod voice_call_test;

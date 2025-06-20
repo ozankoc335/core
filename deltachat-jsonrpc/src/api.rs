@@ -2521,6 +2521,87 @@ impl CommandApi {
             Err(anyhow!("Voice call manager not initialized"))
         }
     }
+
+    // ---------------------------------------------
+    //              Callme P2P Voice Calls
+    // ---------------------------------------------
+
+    /// Get the callme node ID for P2P connections
+    #[rpc(name = "get_callme_node_id")]
+    async fn get_callme_node_id(&self) -> Result<Option<String>> {
+        let manager_guard = self.voice_call_manager.lock().await;
+        if let Some(manager) = manager_guard.as_ref() {
+            // Access the callme manager to get the actual node ID
+            let callme = manager.callme_manager.read().await;
+            Ok(callme.get_node_id().map(|id| id.to_string()))
+        } else {
+            Err(anyhow!("Voice call manager not initialized"))
+        }
+    }
+
+    /// Start a P2P voice call using callme
+    #[rpc(name = "start_callme_call")]
+    async fn start_callme_call(&self, peer_node_id: String) -> Result<String> {
+        let manager_guard = self.voice_call_manager.lock().await;
+        if let Some(manager) = manager_guard.as_ref() {
+            // Parse the node ID and start callme call
+            let node_id = peer_node_id.parse()
+                .map_err(|_| anyhow!("Invalid node ID format"))?;
+            
+            let callme = manager.callme_manager.read().await;
+            callme.start_call(node_id).await
+        } else {
+            Err(anyhow!("Voice call manager not initialized"))
+        }
+    }
+
+    /// Accept a callme P2P voice call
+    #[rpc(name = "accept_callme_call")]
+    async fn accept_callme_call(&self, call_id: String) -> Result<()> {
+        let manager_guard = self.voice_call_manager.lock().await;
+        if let Some(manager) = manager_guard.as_ref() {
+            let callme = manager.callme_manager.read().await;
+            callme.accept_call(&call_id).await
+        } else {
+            Err(anyhow!("Voice call manager not initialized"))
+        }
+    }
+
+    /// End a callme P2P voice call
+    #[rpc(name = "end_callme_call")]
+    async fn end_callme_call(&self, call_id: String) -> Result<()> {
+        let manager_guard = self.voice_call_manager.lock().await;
+        if let Some(manager) = manager_guard.as_ref() {
+            let callme = manager.callme_manager.read().await;
+            callme.end_call(&call_id).await
+        } else {
+            Err(anyhow!("Voice call manager not initialized"))
+        }
+    }
+
+    /// Get active callme P2P voice calls
+    #[rpc(name = "get_active_callme_calls")]
+    async fn get_active_callme_calls(&self) -> Result<Vec<String>> {
+        let manager_guard = self.voice_call_manager.lock().await;
+        if let Some(manager) = manager_guard.as_ref() {
+            let callme = manager.callme_manager.read().await;
+            Ok(callme.get_active_calls().await)
+        } else {
+            Err(anyhow!("Voice call manager not initialized"))
+        }
+    }
+
+    /// Get callme P2P voice call status
+    #[rpc(name = "get_callme_call_status")]
+    async fn get_callme_call_status(&self, call_id: String) -> Result<crate::callme_integration::CallmeStatus> {
+        let manager_guard = self.voice_call_manager.lock().await;
+        if let Some(manager) = manager_guard.as_ref() {
+            let callme = manager.callme_manager.read().await;
+            callme.get_call_status(&call_id).await
+        } else {
+            Err(anyhow!("Voice call manager not initialized"))
+        }
+    }
 }
 
 // Helper functions (to prevent code duplication)
