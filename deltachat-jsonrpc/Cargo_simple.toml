@@ -1,0 +1,12 @@
+[package]
+name = "voice_call_test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.0", features = ["full"] }
+rand = "0.8"
+
+[[bin]]
+name = "test_voice_simple"
+path = "test_voice_simple.rs"
