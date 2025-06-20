@@ -44,6 +44,7 @@ use walkdir::WalkDir;
 use yerpc::rpc;
 
 pub mod types;
+use crate::voice_call::{VoiceCallManager, CallStatus};
 
 use num_traits::FromPrimitive;
 use types::account::Account;
@@ -95,6 +96,9 @@ pub struct CommandApi {
     event_emitter: Arc<EventEmitter>,
 
     states: Arc<Mutex<BTreeMap<u32, AccountState>>>,
+    
+    /// Voice call manager for handling P2P voice calls
+    voice_call_manager: Arc<Mutex<Option<VoiceCallManager>>>,
 }
 
 impl CommandApi {
@@ -104,6 +108,7 @@ impl CommandApi {
             accounts: Arc::new(RwLock::new(accounts)),
             event_emitter,
             states: Arc::new(Mutex::new(BTreeMap::new())),
+            voice_call_manager: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -114,6 +119,7 @@ impl CommandApi {
             accounts,
             event_emitter,
             states: Arc::new(Mutex::new(BTreeMap::new())),
+            voice_call_manager: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -2419,6 +2425,100 @@ impl CommandApi {
                 "chat with id {} doesn't have draft message",
                 chat_id
             ))
+        }
+    }
+
+    // Voice Call API Methods
+    
+    /// Initialize the voice call manager
+    #[rpc(name = "init_voice_calls")]
+    async fn init_voice_calls(&self) -> Result<String> {
+        let mut manager_guard = self.voice_call_manager.lock().await;
+        if manager_guard.is_none() {
+            let manager = VoiceCallManager::new().await?;
+            manager.start_listening().await?;
+            let node_id = manager.node_id().to_string();
+            *manager_guard = Some(manager);
+            Ok(node_id)
+        } else {
+            Err(anyhow!("Voice call manager already initialized"))
+        }
+    }
+
+    /// Start a voice call to a remote peer
+    #[rpc(name = "start_voice_call")]
+    async fn start_voice_call(&self, remote_peer_id: String) -> Result<String> {
+        let manager_guard = self.voice_call_manager.lock().await;
+        if let Some(manager) = manager_guard.as_ref() {
+            manager.start_call(remote_peer_id).await
+        } else {
+            Err(anyhow!("Voice call manager not initialized. Call init_voice_calls first."))
+        }
+    }
+
+    /// Accept an incoming voice call
+    #[rpc(name = "accept_voice_call")]
+    async fn accept_voice_call(&self, call_id: String) -> Result<()> {
+        let manager_guard = self.voice_call_manager.lock().await;
+        if let Some(manager) = manager_guard.as_ref() {
+            manager.accept_call(&call_id).await
+        } else {
+            Err(anyhow!("Voice call manager not initialized"))
+        }
+    }
+
+    /// End a voice call
+    #[rpc(name = "end_voice_call")]
+    async fn end_voice_call(&self, call_id: String) -> Result<()> {
+        let manager_guard = self.voice_call_manager.lock().await;
+        if let Some(manager) = manager_guard.as_ref() {
+            manager.end_call(&call_id).await
+        } else {
+            Err(anyhow!("Voice call manager not initialized"))
+        }
+    }
+
+    /// Get all active voice calls
+    #[rpc(name = "get_active_voice_calls")]
+    async fn get_active_voice_calls(&self) -> Result<Vec<String>> {
+        let manager_guard = self.voice_call_manager.lock().await;
+        if let Some(manager) = manager_guard.as_ref() {
+            Ok(manager.get_active_calls().await)
+        } else {
+            Err(anyhow!("Voice call manager not initialized"))
+        }
+    }
+
+    /// Get the status of a voice call
+    #[rpc(name = "get_voice_call_status")]
+    async fn get_voice_call_status(&self, call_id: String) -> Result<Option<CallStatus>> {
+        let manager_guard = self.voice_call_manager.lock().await;
+        if let Some(manager) = manager_guard.as_ref() {
+            Ok(manager.get_call_status(&call_id).await)
+        } else {
+            Err(anyhow!("Voice call manager not initialized"))
+        }
+    }
+
+    /// Get the node ID of this instance
+    #[rpc(name = "get_voice_node_id")]
+    async fn get_voice_node_id(&self) -> Result<String> {
+        let manager_guard = self.voice_call_manager.lock().await;
+        if let Some(manager) = manager_guard.as_ref() {
+            Ok(manager.node_id().to_string())
+        } else {
+            Err(anyhow!("Voice call manager not initialized"))
+        }
+    }
+
+    /// Simulate an incoming call (for testing purposes)
+    #[rpc(name = "simulate_incoming_voice_call")]
+    async fn simulate_incoming_voice_call(&self, remote_peer_id: String) -> Result<String> {
+        let manager_guard = self.voice_call_manager.lock().await;
+        if let Some(manager) = manager_guard.as_ref() {
+            manager.simulate_incoming_call(remote_peer_id).await
+        } else {
+            Err(anyhow!("Voice call manager not initialized"))
         }
     }
 }

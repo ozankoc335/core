@@ -2,6 +2,10 @@
 #![cfg_attr(not(test), forbid(clippy::indexing_slicing))]
 #![cfg_attr(not(test), forbid(clippy::string_slice))]
 pub mod api;
+pub mod voice_call;
+
+#[cfg(test)]
+mod voice_call_test;
 pub use yerpc;
 
 #[cfg(test)]

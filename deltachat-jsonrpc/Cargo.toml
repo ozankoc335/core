@@ -22,6 +22,12 @@ sanitize-filename = { workspace = true }
 walkdir = "2.5.0"
 base64 = { workspace = true }
 
+# Voice calling dependencies (simplified version)
+cpal = { version = "0.15.3" }
+uuid = { version = "1.0", features = ["v4"] }
+ringbuf = "0.4.7"
+rand = "0.8"
+
 [dev-dependencies]
 tokio = { workspace = true, features = ["full", "rt-multi-thread"] }
 tempfile = { workspace = true }
